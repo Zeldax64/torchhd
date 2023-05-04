@@ -340,9 +340,8 @@ class MAPTensor(VSATensor):
 
         return torch.clamp(self, min=-kappa, max=kappa)
 
-    def dot_similarity(self, others: "MAPTensor") -> Tensor:
+    def dot_similarity(self, others: "MAPTensor", dtype=torch.get_default_dtype()) -> Tensor:
         """Inner product with other hypervectors"""
-        dtype = torch.get_default_dtype()
         if others.dim() >= 2:
             others = others.mT
         return torch.matmul(self.to(dtype), others.to(dtype))

@@ -881,7 +881,7 @@ def hard_quantize(input: Tensor):
     return torch.where(input > 0, positive, negative)
 
 
-def dot_similarity(input: VSATensor, others: VSATensor) -> VSATensor:
+def dot_similarity(input: VSATensor, others: VSATensor, **kwargs) -> VSATensor:
     """Dot product between the input vector and each vector in others.
 
     Aliased as ``torchhd.dot``.
@@ -926,7 +926,7 @@ def dot_similarity(input: VSATensor, others: VSATensor) -> VSATensor:
     """
     input = ensure_vsa_tensor(input)
     others = ensure_vsa_tensor(others)
-    return input.dot_similarity(others)
+    return input.dot_similarity(others, **kwargs)
 
 
 dot = dot_similarity
