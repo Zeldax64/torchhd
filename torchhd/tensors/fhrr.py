@@ -52,6 +52,7 @@ class FHRRTensor(VSATensor):
         dtype=torch.complex64,
         device=None,
         requires_grad=False,
+        **kwargs,
     ) -> "FHRRTensor":
         """Creates a set of hypervectors representing empty sets.
 
@@ -104,6 +105,7 @@ class FHRRTensor(VSATensor):
         dtype=torch.complex64,
         device=None,
         requires_grad=False,
+        **kwargs,
     ) -> "FHRRTensor":
         """Creates a set of identity hypervectors.
 
@@ -158,6 +160,7 @@ class FHRRTensor(VSATensor):
         device=None,
         requires_grad=False,
         generator=None,
+        **kwargs,
     ) -> "FHRRTensor":
         """Creates a set of random independent hypervectors.
 
@@ -203,7 +206,7 @@ class FHRRTensor(VSATensor):
         result.requires_grad = requires_grad
         return result.as_subclass(cls)
 
-    def bundle(self, other: "FHRRTensor") -> "FHRRTensor":
+    def bundle(self, other: "FHRRTensor", **kwargs) -> "FHRRTensor":
         r"""Bundle the hypervector with other using element-wise sum.
 
         This produces a hypervector maximally similar to both.
@@ -242,11 +245,11 @@ class FHRRTensor(VSATensor):
         """
         return torch.add(self, other)
 
-    def multibundle(self) -> "FHRRTensor":
+    def multibundle(self, **kwargs) -> "FHRRTensor":
         """Bundle multiple hypervectors"""
         return torch.sum(self, dim=-2, dtype=self.dtype)
 
-    def bind(self, other: "FHRRTensor") -> "FHRRTensor":
+    def bind(self, other: "FHRRTensor", **kwargs) -> "FHRRTensor":
         r"""Bind the hypervector with other using element-wise multiplication.
 
         This produces a hypervector dissimilar to both.
@@ -285,11 +288,11 @@ class FHRRTensor(VSATensor):
         """
         return torch.mul(self, other)
 
-    def multibind(self) -> "FHRRTensor":
+    def multibind(self, **kwargs) -> "FHRRTensor":
         """Bind multiple hypervectors"""
         return torch.prod(self, dim=-2, dtype=self.dtype)
 
-    def inverse(self) -> "FHRRTensor":
+    def inverse(self, **kwargs) -> "FHRRTensor":
         r"""Invert the hypervector for binding.
 
         For FHRR the inverse of hypervector is its conjugate, this returns the conjugate of the hypervector.
@@ -319,7 +322,7 @@ class FHRRTensor(VSATensor):
         # Resolve conj to ensure the the returned tensor does not share the same memory
         return torch.conj(self).resolve_conj()
 
-    def negative(self) -> "FHRRTensor":
+    def negative(self, **kwargs) -> "FHRRTensor":
         r"""Negate the hypervector for the bundling inverse.
 
         Shapes:

@@ -150,6 +150,7 @@ class MAPTensor(VSATensor):
         dtype=None,
         device=None,
         requires_grad=False,
+        **kwargs
     ) -> "MAPTensor":
         r"""Creates a set of random independent hypervectors.
 

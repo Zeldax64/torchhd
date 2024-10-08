@@ -169,6 +169,7 @@ class BSCTensor(VSATensor):
         dtype=torch.bool,
         device=None,
         requires_grad=False,
+        **kwargs,
     ) -> "BSCTensor":
         """Creates a set of random independent hypervectors.
 

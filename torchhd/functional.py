@@ -32,6 +32,7 @@ from torchhd.tensors.bsc import BSCTensor
 from torchhd.tensors.map import MAPTensor
 from torchhd.tensors.hrr import HRRTensor
 from torchhd.tensors.fhrr import FHRRTensor
+from torchhd.tensors.mcr import MCRTensor
 from torchhd.types import VSAOptions
 
 
@@ -82,6 +83,8 @@ def get_vsa_tensor_class(vsa: VSAOptions) -> Type[VSATensor]:
         return HRRTensor
     elif vsa == "FHRR":
         return FHRRTensor
+    elif vsa == "MCR":
+        return MCRTensor
 
     raise ValueError(f"Provided VSA model is not supported, specified: {vsa}")
 
@@ -457,6 +460,17 @@ def thermometer(
             dtype=rand_hv.dtype,
             device=rand_hv.device,
         )
+    elif vsa_tensor == MCRTensor:
+        # Use bipolar vectors
+        hv = torch.full(
+            (
+                num_vectors,
+                dimensions,
+            ),
+            -1,
+            dtype=torch.complex64,
+            device=rand_hv.device,
+        )
     else:
         raise ValueError(f"{vsa_tensor} HD/VSA model is not defined.")
 
@@ -465,7 +479,15 @@ def thermometer(
         hv[i, 0 : i * step] = 1
 
     hv.requires_grad = requires_grad
-    return hv.as_subclass(vsa_tensor)
+
+    # Handle MCRTensor as a special case of FHRR
+    if vsa_tensor == MCRTensor:
+        hv = hv.as_subclass(FHRRTensor)
+        hv = MCRTensor.complex_to_mcr(hv, kwargs['mod'])
+    else:
+        hv = hv.as_subclass(vsa_tensor)
+
+    return hv
 
 
 def circular(
@@ -618,7 +640,7 @@ def circular(
     return hv.as_subclass(vsa_tensor)
 
 
-def bind(input: VSATensor, other: VSATensor) -> VSATensor:
+def bind(input: VSATensor, other: VSATensor, **kwargs) -> VSATensor:
     r"""Binds two hypervectors which produces a hypervector dissimilar to both.
 
     Binding is used to associate information, for instance, to assign values to variables.
@@ -649,10 +671,10 @@ def bind(input: VSATensor, other: VSATensor) -> VSATensor:
     """
     input = ensure_vsa_tensor(input)
     other = ensure_vsa_tensor(other)
-    return input.bind(other)
+    return input.bind(other, **kwargs)
 
 
-def bundle(input: VSATensor, other: VSATensor) -> VSATensor:
+def bundle(input: VSATensor, other: VSATensor, **kwargs) -> VSATensor:
     r"""Bundles two hypervectors which produces a hypervector maximally similar to both.
 
     The bundling operation is used to aggregate information into a single hypervector.
@@ -683,7 +705,7 @@ def bundle(input: VSATensor, other: VSATensor) -> VSATensor:
     """
     input = ensure_vsa_tensor(input)
     other = ensure_vsa_tensor(other)
-    return input.bundle(other)
+    return input.bundle(other, **kwargs)
 
 
 def permute(input: VSATensor, *, shifts=1) -> VSATensor:
@@ -768,7 +790,7 @@ class create_random_permute(torch.nn.Module):
         return y.clone()
 
 
-def inverse(input: VSATensor) -> VSATensor:
+def inverse(input: VSATensor, **kwargs) -> VSATensor:
     r"""Inverse for the binding operation.
 
     See :func:`~torchhd.functional.bind`.
@@ -790,10 +812,9 @@ def inverse(input: VSATensor) -> VSATensor:
 
     """
     input = ensure_vsa_tensor(input)
-    return input.inverse()
+    return input.inverse(**kwargs)
 
-
-def negative(input: VSATensor) -> VSATensor:
+def negative(input: VSATensor, **kwargs) -> VSATensor:
     r"""Inverse for the bundling operation.
 
     See :func:`~torchhd.functional.bundle`.
@@ -815,7 +836,7 @@ def negative(input: VSATensor) -> VSATensor:
 
     """
     input = ensure_vsa_tensor(input)
-    return input.negative()
+    return input.negative(**kwargs)
 
 
 def soft_quantize(input: Tensor):
@@ -881,7 +902,7 @@ def hard_quantize(input: Tensor):
     return torch.where(input > 0, positive, negative)
 
 
-def dot_similarity(input: VSATensor, others: VSATensor) -> VSATensor:
+def dot_similarity(input: VSATensor, others: VSATensor, **kwargs) -> VSATensor:
     """Dot product between the input vector and each vector in others.
 
     Aliased as ``torchhd.dot``.
@@ -932,7 +953,7 @@ def dot_similarity(input: VSATensor, others: VSATensor) -> VSATensor:
 dot = dot_similarity
 
 
-def cosine_similarity(input: VSATensor, others: VSATensor) -> VSATensor:
+def cosine_similarity(input: VSATensor, others: VSATensor, **kwargs) -> VSATensor:
     """Cosine similarity between the input vector and each vector in others.
 
     Aliased as ``torchhd.cos``.
@@ -1013,7 +1034,7 @@ def hamming_similarity(input: VSATensor, others: VSATensor) -> LongTensor:
     return torch.sum(input == others, dim=-1, dtype=torch.long)
 
 
-def multiset(input: VSATensor) -> VSATensor:
+def multiset(input: VSATensor, **kwargs) -> VSATensor:
     r"""Multiset of input hypervectors.
 
     Bundles all the input hypervectors together.
@@ -1041,7 +1062,7 @@ def multiset(input: VSATensor) -> VSATensor:
 
     """
     input = ensure_vsa_tensor(input)
-    return input.multibundle()
+    return input.multibundle(**kwargs)
 
 
 multibundle = multiset
@@ -1141,7 +1162,7 @@ def multirandsel(
     return input.gather(-2, select).squeeze(-2)
 
 
-def multibind(input: VSATensor) -> VSATensor:
+def multibind(input: VSATensor, **kwargs) -> VSATensor:
     r"""Binding of multiple hypervectors.
 
     Binds all the input hypervectors together.
@@ -1169,7 +1190,7 @@ def multibind(input: VSATensor) -> VSATensor:
 
     """
     input = ensure_vsa_tensor(input)
-    return input.multibind()
+    return input.multibind(**kwargs)
 
 
 def cross_product(input: VSATensor, other: VSATensor) -> VSATensor:
@@ -1213,7 +1234,7 @@ def cross_product(input: VSATensor, other: VSATensor) -> VSATensor:
     return bind(multiset(input), multiset(other))
 
 
-def ngrams(input: VSATensor, n: int = 3) -> VSATensor:
+def ngrams(input: VSATensor, n: int = 3, **kwargs) -> VSATensor:
     r"""Creates a hypervector with the :math:`n`-gram statistics of the input.
 
     .. math::
@@ -1250,9 +1271,9 @@ def ngrams(input: VSATensor, n: int = 3) -> VSATensor:
     for i in range(1, n):
         stop = None if i == (n - 1) else -(n - i - 1)
         sample = permute(input[..., i:stop, :], shifts=n - i - 1)
-        n_gram = bind(n_gram, sample)
+        n_gram = bind(n_gram, sample, **kwargs)
 
-    return multiset(n_gram)
+    return multiset(n_gram, **kwargs)
 
 
 def hash_table(keys: VSATensor, values: VSATensor) -> VSATensor:

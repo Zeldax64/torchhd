@@ -95,7 +95,7 @@ class VSATensor(Tensor):
 
         return output
 
-    def bind(self, other: "VSATensor") -> "VSATensor":
+    def bind(self, other: "VSATensor", **kwargs) -> "VSATensor":
         """Bind the hypervector with other"""
         raise NotImplementedError
 

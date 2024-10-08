@@ -328,6 +328,7 @@ class Random(nn.Embedding):
         sparse: bool = False,
         device=None,
         dtype=None,
+        **kwargs,
     ) -> None:
         factory_kwargs = {"device": device, "dtype": dtype}
         # Have to call Module init explicitly in order not to use the Embedding init
@@ -355,7 +356,7 @@ class Random(nn.Embedding):
         self.sparse = sparse
 
         embeddings = functional.random(
-            num_embeddings, embedding_dim, self.vsa, **factory_kwargs
+            num_embeddings, embedding_dim, self.vsa, **factory_kwargs, **kwargs
         )
         # Have to provide requires grad at the creation of the parameters to
         # prevent errors when instantiating a non-float embedding
@@ -588,6 +589,7 @@ class Thermometer(nn.Embedding):
         sparse: bool = False,
         device=None,
         dtype=None,
+        **kwargs
     ) -> None:
         factory_kwargs = {"device": device, "dtype": dtype}
         # Have to call Module init explicitly in order not to use the Embedding init
@@ -606,7 +608,7 @@ class Thermometer(nn.Embedding):
         self.sparse = sparse
 
         embeddings = functional.thermometer(
-            num_embeddings, embedding_dim, self.vsa, **factory_kwargs
+            num_embeddings, embedding_dim, self.vsa, **factory_kwargs, **kwargs
         )
         # Have to provide requires grad at the creation of the parameters to
         # prevent errors when instantiating a non-float embedding
