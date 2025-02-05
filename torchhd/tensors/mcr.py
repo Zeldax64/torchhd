@@ -21,6 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+from abc import abstractmethod
 import math
 import torch
 from typing import Set
@@ -35,7 +36,7 @@ type_conversion = {
 }
 _default_mcr_dtype = torch.int32
 
-class MCRTensor(VSATensor):
+class BaseMCRTensor(VSATensor):
     """Modular Composite Representation
 
     Proposed in `Modular Composite Representation <https://link.springer.com/article/10.1007/s12559-013-9243-y>`_, this model intends to be a integer quantized alternative to FHRR.
@@ -282,6 +283,7 @@ class MCRTensor(VSATensor):
 
         return result
 
+    @abstractmethod
     def bundle(self, other: "FHRRTensor", mod) -> "FHRRTensor":
         r"""Bundle the hypervector with other using element-wise sum.
 
@@ -331,6 +333,7 @@ class MCRTensor(VSATensor):
 
         return nearest_indices
 
+    @abstractmethod
     def multibundle(self, mod) -> "FHRRTensor":
         """Bundle multiple hypervectors"""
         # Convert from modular representation to complex
@@ -542,4 +545,69 @@ class MCRTensor(VSATensor):
 
         magnitude = torch.clamp(magnitude, min=eps)
         return self.dot_similarity(others) / magnitude
+
+
+class MCRTensor(BaseMCRTensor):
+    """docstring for MCRTensor"""
+
+    def bundle(self, other: "FHRRTensor", mod) -> "FHRRTensor":
+        r"""Bundle the hypervector with other using element-wise sum.
+
+        This produces a hypervector maximally similar to both.
+
+        The bundling operation is used to aggregate information into a single hypervector.
+
+        Args:
+            other (FHRR): other input hypervector
+
+        Shapes:
+            - Self: :math:`(*)`
+            - Other: :math:`(*)`
+            - Output: :math:`(*)`
+
+        Examples::
+
+            >>> a, b = torchhd.FHRRTensor.random(2, 6)
+            >>> a
+            FHRR([ 0.9556-0.2948j,  0.1746+0.9846j, -0.6270-0.7790j, -0.2423-0.9702j, 0.6358+0.7719j,  0.9965-0.0834j])
+            >>> b
+            FHRR([-0.9539-0.3000j, -0.1279+0.9918j, -0.4610+0.8874j, -0.3638-0.9315j, 0.9554+0.2952j,  0.8659+0.5003j])
+            >>> a.bundle(b)
+            FHRR([-1.6885+0.4104j, -0.4094-1.4874j,  0.0090-0.0058j,  0.1039-0.9365j, 0.0413-1.8657j,  0.6276+1.8385j])
+
+            >>> a, b = torchhd.FHRRTensor.random(2, 10, dtype=torch.complex128)
+            >>> a
+            FHRR([ 0.4521-0.8920j,  0.7917-0.6109j,  0.5414-0.8408j, -0.9550-0.2967j, 0.9320+0.3626j, -0.8509-0.5253j],
+            dtype=torch.complex128)
+            >>> b
+            FHRR([ 0.6954-0.7186j, -0.5621-0.8270j,  0.4685+0.8835j, -0.9319+0.3627j, -0.8310-0.5563j,  0.2545+0.9671j],
+            dtype=torch.complex128)
+            >>> a.bundle(b)
+            FHRR([ 1.1475-1.6106j,  0.2296-1.4379j,  1.0099+0.0427j, -1.8869+0.0660j, 0.1010-0.1937j, -0.5964+0.4417j],
+            dtype=torch.complex128)
+
+        """
+        # Convert from modular representation to complex
+        complex_self = MCRTensor.mcr_to_complex(self, mod=mod)
+        complex_other = MCRTensor.mcr_to_complex(other, mod=mod)
+
+        # Bundle the complex elements
+        complex_sum = complex_self + complex_other
+
+        # Convert back to modular
+        nearest_indices = MCRTensor.complex_to_mcr(complex_sum, mod=mod)
+
+        return nearest_indices
+
+    def multibundle(self, mod) -> "FHRRTensor":
+        """Bundle multiple hypervectors"""
+        # Convert from modular representation to complex
+        complex_self = MCRTensor.mcr_to_complex(self, mod)
+
+        # Bundle the complex elements
+        complex_sum = torch.sum(complex_self, dim=-2)
+
+        nearest_indices = MCRTensor.complex_to_mcr(complex_sum, mod)
+
+        return nearest_indices
 

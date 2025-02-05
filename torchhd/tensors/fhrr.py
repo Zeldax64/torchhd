@@ -206,6 +206,11 @@ class FHRRTensor(VSATensor):
         result.requires_grad = requires_grad
         return result.as_subclass(cls)
 
+    def _norm(self):
+        dot = (self * self.conj()).real
+        mag = torch.sqrt(dot)
+        return self / mag
+
     def bundle(self, other: "FHRRTensor", **kwargs) -> "FHRRTensor":
         r"""Bundle the hypervector with other using element-wise sum.
 
@@ -243,11 +248,11 @@ class FHRRTensor(VSATensor):
             dtype=torch.complex128)
 
         """
-        return torch.add(self, other)
+        return (torch.add(self, other))._norm()
 
     def multibundle(self, **kwargs) -> "FHRRTensor":
         """Bundle multiple hypervectors"""
-        return torch.sum(self, dim=-2, dtype=self.dtype)
+        return (torch.sum(self, dim=-2, dtype=self.dtype))._norm()
 
     def bind(self, other: "FHRRTensor", **kwargs) -> "FHRRTensor":
         r"""Bind the hypervector with other using element-wise multiplication.

@@ -35,6 +35,7 @@ from torchhd.tensors.map import MAPTensor
 from torchhd.tensors.hrr import HRRTensor
 from torchhd.tensors.fhrr import FHRRTensor
 from torchhd.tensors.mcr import MCRTensor
+from torchhd.tensors.cgr import CGRTensor
 
 from torchhd.functional import (
     ensure_vsa_tensor,
@@ -86,6 +87,7 @@ __all__ = [
     "HRRTensor",
     "FHRRTensor",
     "MCRTensor",
+    "CGRTensor",
     "functional",
     "embeddings",
     "structures",

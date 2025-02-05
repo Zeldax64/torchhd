@@ -33,6 +33,8 @@ from torchhd.tensors.map import MAPTensor
 from torchhd.tensors.hrr import HRRTensor
 from torchhd.tensors.fhrr import FHRRTensor
 from torchhd.tensors.mcr import MCRTensor
+from torchhd.tensors.mcr import BaseMCRTensor
+from torchhd.tensors.cgr import CGRTensor
 from torchhd.types import VSAOptions
 
 
@@ -85,6 +87,8 @@ def get_vsa_tensor_class(vsa: VSAOptions) -> Type[VSATensor]:
         return FHRRTensor
     elif vsa == "MCR":
         return MCRTensor
+    elif vsa == "CGR":
+        return CGRTensor
 
     raise ValueError(f"Provided VSA model is not supported, specified: {vsa}")
 
@@ -460,7 +464,8 @@ def thermometer(
             dtype=rand_hv.dtype,
             device=rand_hv.device,
         )
-    elif vsa_tensor == MCRTensor:
+    #elif (vsa_tensor == MCRTensor) | (vsa_tensor == CGRTensor):
+    elif issubclass(vsa_tensor, BaseMCRTensor):
         # Use bipolar vectors
         hv = torch.full(
             (
@@ -481,7 +486,8 @@ def thermometer(
     hv.requires_grad = requires_grad
 
     # Handle MCRTensor as a special case of FHRR
-    if vsa_tensor == MCRTensor:
+    #if vsa_tensor == MCRTensor:
+    if issubclass(vsa_tensor, BaseMCRTensor):
         hv = hv.as_subclass(FHRRTensor)
         hv = MCRTensor.complex_to_mcr(hv, kwargs['mod'])
     else:
